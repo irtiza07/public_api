@@ -3,6 +3,7 @@ import json
 import base64
 import asyncio
 import websockets
+import threading
 
 
 from websockets.protocol import State as ConnectionState
@@ -12,12 +13,23 @@ from fastapi.websockets import WebSocketDisconnect
 from twilio.twiml.voice_response import VoiceResponse, Connect, Say, Stream
 from dotenv import load_dotenv
 
+from logic.realtime_api_openai.reservations_agent.simple_websocket import (
+    function_definitions,
+    handle_function_call,
+)
+
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SYSTEM_MESSAGE = (
-    "You are a helpful assistant. You will be given a conversation with a user. "
-    "Your task is to respond to the user in a helpful and informative manner."
+    "You are an agent who makes restaurant reservations."
+    "To make a reservation, you need to collect the following required information: name of the party, date, time, and the size of the party."
+    "All these fields are required"
+    "You should talk like a restaurant front desk assistant gathering this information in a friendly, professional manner."
+    "Before finalizing any reservation, you must restate all the reservation details to the user and ask for confirmation."
+    "Only when the user confirms all details should you make the reservation by calling the make_reservation function."
+    "You have a bunch of tools at your disposal. When the user asks you about popular dishes or what's good in the restaurant, only stick to details returned from function call."
+    "Don't make up names of dishes, prices, or anything else that's not returned to you from the function."
 )
 VOICE = "alloy"
 
@@ -29,6 +41,8 @@ LOG_EVENT_TYPES = [
     "input_audio_buffer.speech_stopped",
     "input_audio_buffer.speech_started",
     "session.created",
+    "response.function_call_arguments.done",
+    "error",
 ]
 
 router = APIRouter()
@@ -46,7 +60,7 @@ async def handle_incoming_call(request: Request):
     response.pause(length=1)
     response.say("O.K. you can start talking now.")
 
-    host = "0m7rxp9p-8000.use2.devtunnels.ms"
+    host = "7179-2605-a601-5591-e500-21b4-1198-6004-bd87.ngrok-free.app"
     connect = Connect()
 
     media_stream_url = f"wss://{host}/twilio_restaurants/media-stream"
@@ -100,9 +114,55 @@ async def handle_media_stream(websocket: WebSocket):
                 async for openai_message in openai_ws:
                     response = json.loads(openai_message)
                     if response["type"] in LOG_EVENT_TYPES:
-                        print(f"Received event: {response['type']}", response)
+                        print(f"Received event: {response['type']}")
                     if response["type"] == "session.updated":
-                        print("Session updated successfully:", response)
+                        print("Session updated successfully:")
+                    if response["type"] == "response.function_call_arguments.done":
+                        # Handle function call from the LLM
+                        function_name = response.get("name")
+                        arguments = response.get("arguments", "{}")
+                        call_id = response.get("call_id")
+
+                        # IMPORTANT: First, add a function_call item to the conversation history
+                        function_call_event = {
+                            "type": "conversation.item.create",
+                            "item": {
+                                "type": "function_call",
+                                "call_id": call_id,
+                                "name": function_name,
+                                "arguments": arguments,
+                            },
+                        }
+                        print("Sending function_call event to OpenAI API")
+                        await openai_ws.send(json.dumps(function_call_event))
+
+                        # Wait a moment for this to be processed
+                        threading.Event().wait(0.2)
+
+                        print("Calling function handle_function_call")
+                        await handle_function_call(
+                            ws=openai_ws,
+                            function_name=function_name,
+                            arguments_str=arguments,
+                            call_id=call_id,
+                        )
+
+                        # Wait a moment for this to be processed
+                        threading.Event().wait(0.2) 
+
+                        await openai_ws.send(
+                            json.dumps(
+                                {
+                                    "type": "response.create",
+                                    "response": {
+                                        "modalities": ["text", "audio"],
+                                        "tools": function_definitions,
+                                        "tool_choice": "auto",
+                                    },
+                                }
+                            )
+                        )
+
                     if response["type"] == "response.audio.delta" and response.get(
                         "delta"
                     ):
@@ -135,7 +195,9 @@ async def send_session_update(openai_ws):
             "instructions": SYSTEM_MESSAGE,
             "modalities": ["text", "audio"],
             "temperature": 0.8,
+            "tools": function_definitions,
+            "tool_choice": "auto",
         },
     }
-    print(f"Sending session update: {session_update}", json.dumps(session_update))
+    print(f"Sending session update...")
     await openai_ws.send(json.dumps(session_update))
