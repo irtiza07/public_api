@@ -10,7 +10,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-kafka_topic_name = "async-llm-processing"
+kafka_topic_name = "async_llm_response"
 
 # Kafka Producer configuration
 kafka_producer_config = {

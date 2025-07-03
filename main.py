@@ -3,6 +3,7 @@ from apps.debugger_app.routes import router as debug_router
 from apps.flight_tracker.routes import router as flight_tracker_router
 from apps.sql_query_builder.routes import router as sql_query_builder_router
 from apps.langchain_stream.routes import router as langchain_stream_router
+from apps.twilio_restaurants.routes import router as twilio_restaurants_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -25,6 +26,9 @@ app.include_router(
 )
 app.include_router(
     sql_query_builder_router, prefix="/sql_query_builder", tags=["sql_query_builder"]
+)
+app.include_router(
+    twilio_restaurants_router, prefix="/twilio_restaurants", tags=["twilio_restaurants"]
 )
 app.include_router(
     langchain_stream_router,

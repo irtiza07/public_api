@@ -117,7 +117,7 @@ def create_llm_message(prompt, conversation_id):
 
 
 def main():
-    topic_name = "async-llm-processing"
+    topic_name = "async_llm_response"
     create_topic(topic_name)
 
     producer = Producer(kafka_config)
