@@ -81,8 +81,9 @@ def stop_audio():
             is_playing_audio = False
 
 
-def handle_function_call(ws, function_name, arguments_str, call_id):
+async def handle_function_call(ws, function_name, arguments_str, call_id):
     """Process a function call from the LLM and return the result."""
+    print("Inside Function Call Handler")
     try:
         # Parse arguments
         arguments = json.loads(arguments_str)
@@ -113,7 +114,7 @@ def handle_function_call(ws, function_name, arguments_str, call_id):
             result = json.dumps(result)
 
         # Send the function result back to the model
-        print(type(result))
+        print("Sending function result back to the model...")
         event = {
             "type": "conversation.item.create",
             "item": {
@@ -122,7 +123,7 @@ def handle_function_call(ws, function_name, arguments_str, call_id):
                 "output": result,
             },
         }
-        ws.send(json.dumps(event))
+        await ws.send(json.dumps(event))
 
     except Exception as e:
         print(f"Error handling function call: {e}")
@@ -364,14 +365,8 @@ def get_popular_dishes():
     return [
         {"id": 1, "name": "Spaghetti Carbonara"},
         {"id": 2, "name": "Margherita Pizza"},
-        {"id": 3, "name": "Caesar Salad"},
-        {"id": 4, "name": "Grilled Salmon"},
-        {"id": 5, "name": "Tiramisu"},
-        {"id": 6, "name": "Ribeye Steak"},
-        {"id": 7, "name": "Panna Cotta"},
-        {"id": 8, "name": "Mushroom Risotto"},
-        {"id": 9, "name": "Bruschetta"},
-        {"id": 10, "name": "Caprese Salad"},
+        {"id": 3, "name": "Grilled Salmon"},
+        {"id": 4, "name": "Tiramisu"},
     ]
 
 
@@ -420,24 +415,6 @@ def get_dish_details(dish_id):
             ],
         },
         3: {
-            "name": "Caesar Salad",
-            "ingredients": [
-                "romaine lettuce",
-                "croutons",
-                "parmesan cheese",
-                "Caesar dressing",
-            ],
-            "calories": 350,
-            "price": 8.99,
-            "reviews": [
-                {"user": "Karl", "review": "Crisp and refreshing!"},
-                {"user": "Laura", "review": "Too much dressing for my liking."},
-                {"user": "Mallory", "review": "Great as a side dish."},
-                {"user": "Nina", "review": "Perfectly seasoned."},
-                {"user": "Oscar", "review": "I could eat this every day!"},
-            ],
-        },
-        4: {
             "name": "Grilled Salmon",
             "ingredients": ["salmon fillet", "olive oil", "lemon", "herbs"],
             "calories": 450,
@@ -450,7 +427,7 @@ def get_dish_details(dish_id):
                 {"user": "Trent", "review": "I love the lemon zest."},
             ],
         },
-        5: {
+        4: {
             "name": "Tiramisu",
             "ingredients": [
                 "ladyfingers",
@@ -466,71 +443,6 @@ def get_dish_details(dish_id):
                 {"user": "Walter", "review": "Perfect end to a meal."},
                 {"user": "Xena", "review": "I could eat this all day."},
                 {"user": "Yara", "review": "Authentic Italian dessert."},
-            ],
-        },
-        6: {
-            "name": "Ribeye Steak",
-            "ingredients": ["ribeye steak", "salt", "pepper", "butter"],
-            "calories": 700,
-            "price": 24.99,
-            "reviews": [
-                {"user": "Zara", "review": "Juicy and tender!"},
-                {"user": "Aaron", "review": "Cooked exactly as I ordered."},
-                {"user": "Bella", "review": "A bit too fatty for my taste."},
-                {"user": "Cody", "review": "Best steak I've ever had!"},
-                {"user": "Diana", "review": "Perfectly seasoned."},
-            ],
-        },
-        7: {
-            "name": "Panna Cotta",
-            "ingredients": ["cream", "sugar", "gelatin", "vanilla"],
-            "calories": 300,
-            "price": 5.99,
-            "reviews": [
-                {"user": "Ethan", "review": "Silky smooth and delicious!"},
-                {"user": "Fiona", "review": "A bit too sweet for my liking."},
-                {"user": "George", "review": "Perfectly creamy."},
-                {"user": "Hannah", "review": "Great texture."},
-                {"user": "Ian", "review": "I love the vanilla flavor."},
-            ],
-        },
-        8: {
-            "name": "Mushroom Risotto",
-            "ingredients": ["arborio rice", "mushrooms", "parmesan cheese", "broth"],
-            "calories": 500,
-            "price": 14.99,
-            "reviews": [
-                {"user": "Jack", "review": "Creamy and flavorful!"},
-                {"user": "Kathy", "review": "A bit too rich for my taste."},
-                {"user": "Leo", "review": "Perfectly cooked rice."},
-                {"user": "Mia", "review": "Great comfort food."},
-                {"user": "Nate", "review": "I love the mushroom flavor."},
-            ],
-        },
-        9: {
-            "name": "Bruschetta",
-            "ingredients": ["bread", "tomatoes", "basil", "olive oil"],
-            "calories": 250,
-            "price": 7.99,
-            "reviews": [
-                {"user": "Olivia", "review": "Fresh and tasty!"},
-                {"user": "Paul", "review": "A bit too garlicky for my taste."},
-                {"user": "Quinn", "review": "Perfect appetizer."},
-                {"user": "Rachel", "review": "I love the fresh tomatoes."},
-                {"user": "Sam", "review": "Great with a glass of wine."},
-            ],
-        },
-        10: {
-            "name": "Caprese Salad",
-            "ingredients": ["mozzarella cheese", "tomatoes", "basil", "olive oil"],
-            "calories": 300,
-            "price": 9.99,
-            "reviews": [
-                {"user": "Tina", "review": "Fresh and delicious!"},
-                {"user": "Ursula", "review": "A bit too oily for my taste."},
-                {"user": "Victor", "review": "Perfectly balanced flavors."},
-                {"user": "Wendy", "review": "Great as a side dish."},
-                {"user": "Xander", "review": "I love the fresh basil."},
             ],
         },
     }
