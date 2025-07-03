@@ -109,9 +109,10 @@ def consume_messages(topic_name):
 
 
 def main():
-    topic_name = "async-llm-processing"
+    topic_name = "async_llm_response"
     consume_messages(topic_name)
 
 
 if __name__ == "__main__":
     main()
+
