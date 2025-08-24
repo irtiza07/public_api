@@ -106,18 +106,14 @@ def create_llm_message(prompt, conversation_id):
     Create a message with the required fields
     """
 
-    messages = [HumanMessage(content=prompt)]
-    response = llm.invoke(messages)
-
     return {
         "conversation_id": conversation_id,
         "prompt": prompt,
-        "llm_answer": response.content,
     }
 
 
 def main():
-    topic_name = "async_llm_response"
+    topic_name = "async_user_prompt"
     create_topic(topic_name)
 
     producer = Producer(kafka_config)

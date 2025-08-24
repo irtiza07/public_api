@@ -1,7 +1,11 @@
 import json
 import logging
 import redis
-from confluent_kafka import Consumer, KafkaError, KafkaException
+from confluent_kafka import Consumer, KafkaError, KafkaException, Producer
+from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage
+from dotenv import load_dotenv
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -27,6 +31,17 @@ redis_config = {
     "decode_responses": True,  # Automatically decode response bytes to strings
 }
 
+# Load environment variables
+load_dotenv()
+
+# Initialize LLM
+llm = ChatOpenAI(
+    model="gpt-3.5-turbo", temperature=0.7, api_key=os.getenv("OPENAI_API_KEY")
+)
+
+# Initialize Kafka producer
+producer = Producer(kafka_config)
+
 
 def connect_to_redis():
     """
@@ -45,7 +60,7 @@ def connect_to_redis():
 
 def process_message(message, redis_client):
     """
-    Process a Kafka message and store it in Redis
+    Process a Kafka message, call the LLM for an answer, store it in Redis, and publish the result back to Kafka
     """
     try:
         # Decode message value
@@ -57,20 +72,43 @@ def process_message(message, redis_client):
 
         # Get conversation ID (used as Redis key)
         conversation_id = payload.get("conversation_id")
+        prompt = payload.get("prompt")
 
+        # Call the LLM to get the answer
+        messages = [HumanMessage(content=prompt)]
+        response = llm.invoke(messages)
+        llm_answer = response.content
+
+        # Store the question and answer in Redis
         cache_key = f"conversation:{conversation_id}"
-
         redis_client.lpush(
             cache_key,
             json.dumps(
                 {
-                    "question": payload.get("prompt"),
-                    "answer": payload.get("llm_answer"),
+                    "question": prompt,
+                    "answer": llm_answer,
                 }
             ),
         )
 
         logger.info(f"Stored message in Redis with key: {cache_key}")
+        logger.info(
+            f"Full payload stored in Redis: {json.dumps({'question': prompt, 'answer': llm_answer})}"
+        )
+
+        # Publish the payload back to Kafka
+        kafka_payload = {
+            "conversation_id": conversation_id,
+            "user_prompt": prompt,
+            "llm_response": llm_answer,
+        }
+        producer.produce(
+            topic="async_llm_response",
+            key=conversation_id,
+            value=json.dumps(kafka_payload),
+            callback=lambda err, msg: logger.info(f"Message published successfully: {msg.topic()} [{msg.partition()}] at offset {msg.offset()} with payload: {json.dumps(kafka_payload)}" if err is None else f"Failed to publish message: {err}")
+        )
+        producer.flush()
 
     except Exception as e:
         logger.error(f"Error processing message: {e}")
@@ -109,10 +147,9 @@ def consume_messages(topic_name):
 
 
 def main():
-    topic_name = "async_llm_response"
+    topic_name = "async_user_prompt"
     consume_messages(topic_name)
 
 
 if __name__ == "__main__":
     main()
-
