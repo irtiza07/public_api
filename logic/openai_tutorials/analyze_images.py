@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
+# TWO APPROACHES - (1) Photo URLs (2) Base64 encoded images
+
 # POKEMON IMAGE URLS
 BULBASAUR_IMAGE_URL = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/001.png"
 SQUIRTLE_IMAGE_URL = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/007.png"
@@ -16,6 +18,7 @@ ARCANINE_IMAGE_URL = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/05
 ZAPDOS_IMAGE_URL = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/145.png"
 CYNDAQUIL_IMAGE_URL = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/155.png"
 MUDKIP_IMAGE_URL = "https://assets.pokemon.com/assets/cms2/img/pokedex/full/258.png"
+CARD_URL = "https://images.unsplash.com/photo-1628968434441-d9c1c66dcde7?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 # PEOPLE IMAGE URLS
 GROUP_PHOTO_URL = "https://images.unsplash.com/photo-1625283518288-00362afc8663?q=80&w=985&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -34,15 +37,18 @@ client = OpenAI(
 
 
 response = client.responses.create(
-    model="gpt-4o",  # Try gpt-5 when more inference required
+    model="gpt-5",  # Try gpt-5 when more inference required
     input=[
         {
             "role": "user",
             "content": [
-                {"type": "input_text", "text": "Where was this photo taken?"},
+                {
+                    "type": "input_text",
+                    "text": "Identify all unique pokemon from their cards. For each Pokemon, list one attack move visible on the card.",
+                },
                 {
                     "type": "input_image",
-                    "image_url": f"{RANDOM_LOCATION}",
+                    "image_url": f"{CARD_URL}",
                 },
             ],
         },
