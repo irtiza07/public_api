@@ -1,15 +1,7 @@
-0:00 Introduction to Image Analysis with OpenAI
-0:24 Image Input Methods: URL vs Base64
-0:42 Categories of Images for Analysis
-1:08 Using GPT-4.0 for Image Analysis
-1:26 Analyzing Pokemon Images
-3:15 Group Photos: Counting People
-4:58 Complex Group Photos: Challenges in Counting
-6:23 Location Images: Identifying Places
-7:39 Testing with Specific Locations
-9:05 Identifying Dhaka, Bangladesh
-10:02 Testing with Smoky Mountain and Random Locations
-11:01 Analyzing Random Location: Yosemite
-13:43 Testing with GPT-5 Model for Accuracy
-16:23 Analyzing Emotions in Faces
-18:39 Conclusion and Observations
+0:00 Introduction
+1:03 Overview of the YouTube Pipeline
+2:29 Code Walkthrough: Video to Audio Conversion  
+4:29 Transcription with Whisper Model  
+5:29 Generating YouTube Chapters with GPT-4o 
+7:09 Formatting and Saving Chapters  
+8:45 Recap and Closing Remarks
