@@ -5,7 +5,6 @@ from openai import OpenAI
 
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 client = OpenAI(
@@ -27,12 +26,13 @@ with open(template_path, "rb") as image_file, open(mask_path, "rb") as mask_file
     print("-------------------------------- Generating Thumbnail -------------------------------")
     result = client.images.edit(
         model="gpt-image-1",
-        prompt=f"A YouTube thumbnail with the title '{video_title}' and subtitle '{video_subtitle}'. The background color is {background_color}. It includes three icons: one representing '{icon_one_description}', another for '{icon_two_description}', and the third for '{icon_three_description}'. The overall theme reflects the following video summary: '{video_summary}'. The design is eye-catching, vibrant, and optimized for attracting programming and software development viewers on YouTube.",
+        prompt=f"A YouTube thumbnail with the title '{video_title}' and subtitle '{video_subtitle}'. The background color is {background_color}. It includes three icons with no white circle outlines: one representing '{icon_one_description}', another for '{icon_two_description}', and the third for '{icon_three_description}'. The overall theme reflects the following video summary: '{video_summary}'. The design is eye-catching, vibrant, and optimized for attracting programming and software development viewers on YouTube.",
         image=image_file,
         mask=mask_file,
         background='opaque',
         output_format='jpeg',
-        size="1536x1024"
+        size="1536x1024",
+        quality="high"
     )
     print("-------------------------------- Thumbnail Generated -------------------------------")
 

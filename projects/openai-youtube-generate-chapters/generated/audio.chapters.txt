@@ -1,7 +1,10 @@
-0:00 Introduction
-1:03 Overview of the YouTube Pipeline
-2:29 Code Walkthrough: Video to Audio Conversion  
-4:29 Transcription with Whisper Model  
-5:29 Generating YouTube Chapters with GPT-4o 
-7:09 Formatting and Saving Chapters  
-8:45 Recap and Closing Remarks
+```
+0:00 Introduction and Overview
+0:16 Video Structure and Demo
+1:22 API Call and Thumbnail Generation
+3:30 System Design Diagram
+6:40 Code Walkthrough
+9:15 Thumbnail Generation Results
+10:00 Iterating and Improving Thumbnails
+11:36 Conclusion and Resources
+```
