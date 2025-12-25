@@ -180,14 +180,14 @@ def generate_description(summary: str, chapters: str, github_url: str) -> str:
     Returns:
         str: Complete YouTube description.
     """
-    description = f"""📍For more AI programming resources, [join my mailing list](https://irtizahafiz.com/newsletter?utm_source=youtube).
+    description = f"""
+        📍 Get notes and diagrams: https://irtizahafiz.com/newsletter?utm_source=yt
+        ▶️ Get the code: {github_url}
+        
+        {summary}
 
-{summary}
-
-[Github Code]({github_url})
-
-{chapters}
-"""
+        {chapters}
+    """
     return description
 
 
