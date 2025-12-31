@@ -19,53 +19,72 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 
-def handle_user_query(user_query: str) -> Dict[str, Any]:
+def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, Any]:
     """
-    Handle a user query with potential function calling.
+    Handle a user query with potential function calling, maintaining conversation history.
     
     Args:
-        user_query: The user's question or request
+        user_query: The user's question or request.
+        conversation_history: List maintaining the conversation history.
         
     Returns:
-        Dictionary with results and function call details
+        Dictionary with results and function call details.
     """
-    
+
     print(f"🔍 User Query: {user_query}")
-    
+
     try:
-        # Call Responses API
+        # Append the user query to the conversation history
+        conversation_history.append({"role": "user", "content": user_query})
+
+        # Call Responses API with the full conversation history
         response = client.responses.create(
             model="gpt-4o",
-            input=user_query,
+            input=conversation_history,
             instructions="You are a helpful assistant with access to weather, todo, and traffic tools.",
             tools=FUNCTION_SCHEMAS
         )
-        
-        # Debug: Print response structure
-        print(f"📊 Response type: {type(response)}")
+
+        # Append the assistant's response to the conversation history
         if hasattr(response, 'output'):
-            print(f"📊 Output items: {len(response.output)}")
-            for i, item in enumerate(response.output):
-                print(f"  [{i}] Type: {getattr(item, 'type', 'unknown')}")
-        
-        # Look for function calls or messages in output
+            for item in response.output:
+                if hasattr(item, 'role') and item.role == "assistant":
+                    conversation_history.append({"role": "assistant", "content": item.content})
+
+        # Look for function calls in the response
         for item in response.output:
             if hasattr(item, 'type') and item.type == "function_call":
                 print(f"🔧 Function called: {getattr(item, 'name', 'unknown')}")
+                print(f"🤑 Function called: {getattr(item, 'arguments', 'unknown')}")
                 if item.name in AVAILABLE_FUNCTIONS:
                     func = AVAILABLE_FUNCTIONS[item.name]
                     func_args = json.loads(item.arguments)
-                    func_result = func(func_args)
+
+                    # Call the function with unpacked arguments
+                    func_result = func(**func_args)
                     print(f"✅ Function result:\n{func_result}")
 
-                    # Send the function result back to the model so it can produce the final assistant reply
+                    # Append the function call output to the conversation history
+                    conversation_history.append({
+                        "type": "function_call_output",
+                        "call_id": item.call_id,
+                        "output": json.dumps(func_result),
+                    })
+
+                    # Send the function result back to the model
                     followup = client.responses.create(
                         model="gpt-4o",
                         previous_response_id=response.id,
-                        input=[{"type": "function_call_output", "call_id": item.call_id, "output": json.dumps(func_result), }],
-                        tools=FUNCTION_SCHEMAS
+                        input=conversation_history,
+                        tools=FUNCTION_SCHEMAS,
                     )
-                    print("📣 Follow-up response received.")
+
+                    # Append the follow-up response to the conversation history
+                    if hasattr(followup, 'output'):
+                        for followup_item in followup.output:
+                            if hasattr(followup_item, 'role') and followup_item.role == "assistant":
+                                conversation_history.append({"role": "assistant", "content": followup_item.content})
+
                     return {"status": "success", "response": followup}
     except Exception as e:
         print(f"❌ Error: {str(e)}")
@@ -77,18 +96,19 @@ def interactive_mode():
     print("🎮 Interactive Mode - Type 'quit' to exit")
     
     while True:
+        # Initialize an empty conversation history
+        conversation_history = []
         user_input = input("\n💭 Your query: ").strip()
-        
+
         if user_input.lower() in ['quit', 'exit', 'q']:
             print("👋 Goodbye!")
             break
         elif not user_input:
             continue
-            
-        final_result = handle_user_query(user_input)
+
+        final_result = handle_user_query(user_input, conversation_history)
         print(final_result['response'].output[0].content[0].text)
 
 
 if __name__ == "__main__":
-    print("🚀 OpenAI Responses API Function Calling Skeleton")
     interactive_mode()
