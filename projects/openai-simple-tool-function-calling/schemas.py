@@ -12,7 +12,7 @@ Key Design Principles:
 4. Enum constraints to prevent invalid inputs
 """
 
-from functions import get_weather, get_todos, get_traffic
+from functions import get_weather, get_todos, get_traffic, get_event_location
 
 
 # =============================================================================
@@ -86,6 +86,22 @@ FUNCTION_SCHEMAS = [
             "required": ["destination"],
             "additionalProperties": False
         }
+    },
+    {
+        "type": "function",
+        "name": "get_event_location",
+        "description": "Get the location/city where a specific event or activity is taking place. Returns the city and country where events like conferences, weddings, business trips, vacations, or meetings are being held.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "event_name": {
+                    "type": "string",
+                    "description": "The name or type of event (e.g., 'conference', 'wedding', 'business trip', 'vacation', 'meeting')"
+                }
+            },
+            "required": ["event_name"],
+            "additionalProperties": False
+        }
     }
 ]
 
@@ -96,5 +112,6 @@ FUNCTION_SCHEMAS = [
 AVAILABLE_FUNCTIONS = {
     "get_weather": get_weather,
     "get_todos": get_todos,
-    "get_traffic": get_traffic
+    "get_traffic": get_traffic,
+    "get_event_location": get_event_location
 }

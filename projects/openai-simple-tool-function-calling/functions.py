@@ -127,3 +127,42 @@ def get_traffic(destination: str, departure_time: str = "now") -> str:
     💡 Alternative: {traffic_data['alternative']}
     
     Departure: {departure_time}"""
+
+
+def get_event_location(event_name: str) -> str:
+    """
+    Extract the location/city for a given event or activity.
+    
+    This function is designed to be chained with get_weather - first get the 
+    event location, then use it to fetch weather for that location.
+    
+    OpenAI recognizes queries like: "What's the weather for my trip to X?"
+    or "Should I bring an umbrella for the conference?"
+    """
+    # Mock event locations - in real app, this would query a calendar/events database
+    event_locations = {
+        "conference": "San Francisco, USA",
+        "tech conference": "San Francisco, USA",
+        "business conference": "New York, USA",
+        "wedding": "Miami, USA",
+        "vacation": "Cancun, Mexico",
+        "trip": "Los Angeles, USA",
+        "business trip": "Chicago, USA",
+        "meeting": "Seattle, USA",
+        "client meeting": "Boston, USA",
+        "presentation": "Austin, USA",
+        "interview": "Denver, USA",
+        "concert": "Nashville, USA",
+        "game": "Atlanta, USA",
+        "appointment": "Portland, USA",
+        "family visit": "Phoenix, USA"
+    }
+    
+    # Try to match the event name (case-insensitive partial match)
+    event_lower = event_name.lower()
+    for key, location in event_locations.items():
+        if key in event_lower:
+            return location
+    
+    # Default if no match found
+    return "San Diego, USA"
