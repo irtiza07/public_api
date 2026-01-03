@@ -20,7 +20,7 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 
-def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, Any]:
+def handle_user_query(user_query: str, previous_response_id: str = None) -> Dict[str, Any]:
     """
     Handle a user query with potential MULTIPLE consecutive function calls.
     
@@ -32,7 +32,7 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
     
     Args:
         user_query: The user's question or request.
-        conversation_history: List maintaining the conversation history.
+        previous_response_id: ID of the previous response to continue the conversation.
         
     Returns:
         Dictionary with results and function call details.
@@ -41,13 +41,11 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
     print(f"🔍 User Query: {user_query}")
 
     try:
-        # Append the user query to the conversation history
-        conversation_history.append({"role": "user", "content": user_query})
-
-        # Call Responses API with the full conversation history
+        # Call Responses API with the user query
         response = client.responses.create(
             model="gpt-4o",
-            input=conversation_history,
+            input=user_query,
+            previous_response_id=previous_response_id,
             instructions="You are a helpful assistant with access to weather, todo, traffic, and event location tools.",
             tools=FUNCTION_SCHEMAS
         )
@@ -77,6 +75,7 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
                 return {"status": "success", "response": response, "iterations": iteration}
             
             # Process ALL function calls from this iteration
+            function_outputs = []
             for fc_item in function_calls:
                 print(f"\n🔧 Processing function: {fc_item.name}")
                 print(f"📋 Arguments: {fc_item.arguments}")
@@ -89,8 +88,8 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
                     func_result = func(**func_args)
                     print(f"✅ Function result: {func_result}")
 
-                    # Append the function call output to the conversation history
-                    conversation_history.append({
+                    # Collect the function call output
+                    function_outputs.append({
                         "type": "function_call_output",
                         "call_id": fc_item.call_id,
                         "output": json.dumps(func_result),
@@ -101,7 +100,7 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
             response = client.responses.create(
                 model="gpt-4o",
                 previous_response_id=response.id,
-                input=conversation_history,
+                input=function_outputs,
                 tools=FUNCTION_SCHEMAS,
             )
         
@@ -121,10 +120,9 @@ def interactive_mode():
     print("  • 'What's the weather like for my conference?'")
     print("  • 'Should I bring an umbrella to my wedding?'")
     print("  • 'Will it rain during my business trip?'\n")
+    previous_response_id = None
     
     while True:
-        # Initialize an empty conversation history for each query
-        conversation_history = []
         user_input = input("\n💭 Your query: ").strip()
 
         if user_input.lower() in ['quit', 'exit', 'q']:
@@ -133,7 +131,8 @@ def interactive_mode():
         elif not user_input:
             continue
 
-        final_result = handle_user_query(user_input, conversation_history)
+        final_result = handle_user_query(user_input, previous_response_id)
+        previous_response_id = final_result['response'].id
         print(final_result['response'].output[0].content[0].text)
 
 

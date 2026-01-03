@@ -20,7 +20,7 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 
-def handle_streaming_query(user_query: str, conversation_history: list) -> Dict[str, Any]:
+def handle_streaming_query(user_query: str, previous_response_id: str = None) -> Dict[str, Any]:
     """
     Handle a user query with streaming and function calling.
     
@@ -30,15 +30,13 @@ def handle_streaming_query(user_query: str, conversation_history: list) -> Dict[
     
     Args:
         user_query: The user's question or request
-        conversation_history: List maintaining the conversation history
+        previous_response_id: ID of the previous response to continue the conversation
         
     Returns:
         Dictionary with final response and collected data
     """
     
     print(f"🔍 User Query: {user_query}")
-    
-    conversation_history.append({"role": "user", "content": user_query})
     
     # Track accumulated data
     function_calls = {}  # {item_id: {name, arguments, call_id}}
@@ -51,7 +49,8 @@ def handle_streaming_query(user_query: str, conversation_history: list) -> Dict[
         # Create streaming request
         stream = client.responses.create(
             model="gpt-4o",
-            input=conversation_history,
+            input=user_query,
+            previous_response_id=previous_response_id,
             instructions="You are a helpful assistant with access to weather, todo, traffic, and event location tools.",
             tools=FUNCTION_SCHEMAS,
             stream=True
@@ -110,6 +109,7 @@ def handle_streaming_query(user_query: str, conversation_history: list) -> Dict[
         if function_calls:
             print(f"\n--- Executing {len(function_calls)} Function Call(s) ---")
             
+            function_outputs = []
             for item_id, fc_data in function_calls.items():
                 func_name = fc_data["name"]
                 func_args_str = fc_data["arguments"]
@@ -126,8 +126,8 @@ def handle_streaming_query(user_query: str, conversation_history: list) -> Dict[
                     func_result = func(**func_args)
                     print(f"✅ Result: {func_result}")
                     
-                    # Add to conversation history
-                    conversation_history.append({
+                    # Collect the function call output
+                    function_outputs.append({
                         "type": "function_call_output",
                         "call_id": call_id,
                         "output": json.dumps(func_result),
@@ -139,7 +139,7 @@ def handle_streaming_query(user_query: str, conversation_history: list) -> Dict[
             followup = client.responses.create(
                 model="gpt-4o",
                 previous_response_id=response_id,
-                input=conversation_history,
+                input=function_outputs,
                 tools=FUNCTION_SCHEMAS,
             )
             
@@ -167,10 +167,9 @@ def interactive_mode():
     print("  • 'What's the weather for my conference?'")
     print("  • 'What's the weather in Miami and Chicago?'")
     print("  • 'Show me high priority tasks'\n")
+    previous_response_id = None
     
     while True:
-        # Initialize an empty conversation history for each query
-        conversation_history = []
         user_input = input("\n💭 Your query: ").strip()
         
         if user_input.lower() in ['quit', 'exit', 'q']:
@@ -179,7 +178,8 @@ def interactive_mode():
         elif not user_input:
             continue
         
-        final_result = handle_streaming_query(user_input, conversation_history)
+        final_result = handle_streaming_query(user_input, previous_response_id)
+        previous_response_id = final_result['response'].id
         
         if final_result.get('status') == 'success':
             # Print final answer similar to logic_intermediate.py
