@@ -19,7 +19,7 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 
-def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, Any]:
+def handle_user_query(user_query: str, previous_response_id: str = None) -> Dict[str, Any]:
     """
     Handle a user query with potential function calling, maintaining conversation history.
     
@@ -34,24 +34,14 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
     print(f"🔍 User Query: {user_query}")
 
     try:
-        # Append the user query to the conversation history
-        conversation_history.append({"role": "user", "content": user_query})
-
-        # Call Responses API with the full conversation history
         response = client.responses.create(
             model="gpt-4o",
-            input=conversation_history,
             instructions="You are a helpful assistant with access to weather, todo, and traffic tools.",
+            previous_response_id=previous_response_id,
+            input=user_query,
             tools=FUNCTION_SCHEMAS
         )
 
-        # Append the assistant's response to the conversation history
-        if hasattr(response, 'output'):
-            for item in response.output:
-                if hasattr(item, 'role') and item.role == "assistant":
-                    conversation_history.append({"role": "assistant", "content": item.content})
-
-        # Look for function calls in the response
         for item in response.output:
             if hasattr(item, 'type') and item.type == "function_call":
                 print(f"🔧 Function called: {getattr(item, 'name', 'unknown')}")
@@ -64,28 +54,17 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
                     func_result = func(**func_args)
                     print(f"✅ Function result:\n{func_result}")
 
-                    # Append the function call output to the conversation history
-                    conversation_history.append({
-                        "type": "function_call_output",
-                        "call_id": item.call_id,
-                        "output": json.dumps(func_result),
-                    })
-
                     # Send the function result back to the model
                     followup = client.responses.create(
                         model="gpt-4o",
                         previous_response_id=response.id,
-                        input=conversation_history,
+                        input=[{"type": "function_call_output", "output": func_result, "call_id": item.call_id}],
                         tools=FUNCTION_SCHEMAS,
                     )
 
-                    # Append the follow-up response to the conversation history
-                    if hasattr(followup, 'output'):
-                        for followup_item in followup.output:
-                            if hasattr(followup_item, 'role') and followup_item.role == "assistant":
-                                conversation_history.append({"role": "assistant", "content": followup_item.content})
-
                     return {"status": "success", "response": followup}
+            else:
+                return {"status": "success", "response": response}
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         return {"status": "error", "error": str(e)}
@@ -94,10 +73,9 @@ def handle_user_query(user_query: str, conversation_history: list) -> Dict[str, 
 def interactive_mode():
     """Simple interactive mode for testing queries."""
     print("🎮 Interactive Mode - Type 'quit' to exit")
+    previous_response_id = None
     
     while True:
-        # Initialize an empty conversation history
-        conversation_history = []
         user_input = input("\n💭 Your query: ").strip()
 
         if user_input.lower() in ['quit', 'exit', 'q']:
@@ -106,8 +84,9 @@ def interactive_mode():
         elif not user_input:
             continue
 
-        final_result = handle_user_query(user_input, conversation_history)
+        final_result = handle_user_query(user_input, previous_response_id)
         print(final_result['response'].output[0].content[0].text)
+        previous_response_id = final_result['response'].id
 
 
 if __name__ == "__main__":
