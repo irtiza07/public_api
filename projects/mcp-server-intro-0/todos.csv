@@ -6,3 +6,4 @@ id,name,priority,time_created,time_due,status
 5,Call Ayesha,high,2026-01-10T21:26:33.011305,2026-01-13,pending
 6,Charge laptop,low,2026-01-10T21:26:35.972116,,pending
 7,Get parking tags,low,2026-01-10T21:26:38.104986,,pending
+8,Call Dad,medium,2026-01-10T21:35:21.974884,2026-01-13,pending
